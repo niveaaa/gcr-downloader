@@ -23,35 +23,58 @@ scanBtn.addEventListener("click", async () => {
       return;
     }
 
-    chrome.tabs.sendMessage(
-      tab.id,
-      { type: "GET_DRIVE_LINKS" },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          statusDiv.textContent =
-            "Could not access the page. Is this a Google Classroom tab?";
-          return;
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        // This code runs inside the page
+        if (!location.href.startsWith("https://classroom.google.com")) {
+          return { error: "NOT_CLASSROOM", links: [] };
         }
 
-        if (!response || !response.links) {
-          statusDiv.textContent = "No links found or content script not loaded.";
-          return;
-        }
+        const anchors = Array.from(document.querySelectorAll("a[href]"));
+        const linksSet = new Set();
 
-        currentLinks = response.links;
-        if (currentLinks.length === 0) {
-          statusDiv.textContent = "No Drive links found on this page.";
-          return;
-        }
+        anchors.forEach(a => {
+          const href = a.href;
+          if (
+            href.includes("https://drive.google.com") ||
+            href.includes("https://docs.google.com")
+          ) {
+            linksSet.add(href.split("#")[0]); // remove #fragment
+          }
+        });
 
-        statusDiv.textContent = `Found ${currentLinks.length} Drive link(s).`;
-        renderLinks(currentLinks);
-        controlsDiv.classList.remove("hidden");
+        return { error: null, links: Array.from(linksSet) };
       }
-    );
+    });
+
+    const result = results[0]?.result || { error: "UNKNOWN", links: [] };
+
+    if (result.error === "NOT_CLASSROOM") {
+      statusDiv.textContent = "This tab is not a Google Classroom page.";
+      return;
+    }
+
+    if (result.error) {
+      statusDiv.textContent = "Could not scan this page.";
+      console.error("Scan error:", result.error);
+      return;
+    }
+
+    currentLinks = result.links;
+
+    if (!currentLinks.length) {
+      statusDiv.textContent = "No Drive links found on this page.";
+      return;
+    }
+
+    statusDiv.textContent = `Found ${currentLinks.length} Drive link(s).`;
+    renderLinks(currentLinks);
+    controlsDiv.classList.remove("hidden");
   } catch (err) {
     console.error(err);
-    statusDiv.textContent = "Error while scanning. Check console for details.";
+    statusDiv.textContent =
+      "Extension cannot run on this page. Check if it's a Classroom tab.";
   }
 });
 
@@ -98,8 +121,8 @@ downloadBtn.addEventListener("click", () => {
     }
   });
 
-  if (selectedUrls.length === 0) {
-    statusDiv.textContent = "Nothing selected. At least pretend to choose one.";
+  if (!selectedUrls.length) {
+    statusDiv.textContent = "Nothing selected. At least pick one.";
     return;
   }
 
