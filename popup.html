@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Classroom Drive Downloader</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>Drive Links</h1>
+
+    <button id="scanBtn">Scan Classroom Page</button>
+
+    <div id="status"></div>
+
+    <div id="controls" class="hidden">
+      <label>
+        <input type="checkbox" id="selectAll" />
+        Select all
+      </label>
+      <button id="downloadSelected">Download selected</button>
+    </div>
+
+    <div id="linksContainer"></div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
