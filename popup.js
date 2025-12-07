@@ -43,7 +43,7 @@ const controlsDiv = document.getElementById("controls");
 const selectAllCheckbox = document.getElementById("selectAll");
 const downloadBtn = document.getElementById("downloadSelected");
 
-let currentLinks = [];
+let currentItems = [];
 
 // Scan button handler
 scanBtn.addEventListener("click", async () => {
@@ -51,7 +51,7 @@ scanBtn.addEventListener("click", async () => {
   linksContainer.innerHTML = "";
   controlsDiv.classList.add("hidden");
   selectAllCheckbox.checked = false;
-  currentLinks = [];
+  currentItems = [];
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -64,50 +64,60 @@ scanBtn.addEventListener("click", async () => {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        // This code runs inside the page
+        // This code runs inside the Classroom page
         if (!location.href.startsWith("https://classroom.google.com")) {
-          return { error: "NOT_CLASSROOM", links: [] };
+          return { error: "NOT_CLASSROOM", items: [] };
         }
-
+    
         const anchors = Array.from(document.querySelectorAll("a[href]"));
-        const linksSet = new Set();
-
+        const items = [];
+        const seen = new Set();
+    
         anchors.forEach(a => {
           const href = a.href;
           if (
             href.includes("https://drive.google.com") ||
             href.includes("https://docs.google.com")
           ) {
-            linksSet.add(href.split("#")[0]); // remove #fragment
+            const url = href.split("#")[0]; // strip fragment
+            if (seen.has(url)) return;
+            seen.add(url);
+        
+            // Try to get a nice title
+            const text = (a.innerText || "").trim();
+            const aria = (a.getAttribute("aria-label") || "").trim();
+            const title = text || aria || url;
+        
+            items.push({ url, title });
           }
         });
-
-        return { error: null, links: Array.from(linksSet) };
+    
+        return { error: null, items };
       }
     });
 
-    const result = results[0]?.result || { error: "UNKNOWN", links: [] };
+    const result = results[0]?.result || { error: "UNKNOWN", items: [] };
 
     if (result.error === "NOT_CLASSROOM") {
       statusDiv.textContent = "This tab is not a Google Classroom page.";
       return;
     }
-
+    
     if (result.error) {
       statusDiv.textContent = "Could not scan this page.";
       console.error("Scan error:", result.error);
       return;
     }
 
-    currentLinks = result.links;
+    currentItems = result.items;
 
-    if (!currentLinks.length) {
+    if (!currentItems.length) {
       statusDiv.textContent = "No Drive links found on this page.";
       return;
     }
-
-    statusDiv.textContent = `Found ${currentLinks.length} Drive link(s).`;
-    renderLinks(currentLinks);
+    
+    statusDiv.textContent = `Found ${currentItems.length} Drive file(s).`;
+    renderLinks(currentItems);
     controlsDiv.classList.remove("hidden");
   } catch (err) {
     console.error(err);
@@ -117,12 +127,12 @@ scanBtn.addEventListener("click", async () => {
 });
 
 // Render links as a list with checkboxes
-function renderLinks(links) {
+function renderLinks(items) {
   linksContainer.innerHTML = "";
 
-  links.forEach((url, index) => {
-    const item = document.createElement("div");
-    item.className = "link-item";
+  items.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "link-item";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -131,11 +141,12 @@ function renderLinks(links) {
 
     const span = document.createElement("span");
     span.className = "link-url";
-    span.textContent = url;
+    span.textContent = item.title;        // show title
+    span.title = item.url;                // show URL on hover
 
-    item.appendChild(checkbox);
-    item.appendChild(span);
-    linksContainer.appendChild(item);
+    div.appendChild(checkbox);
+    div.appendChild(span);
+    linksContainer.appendChild(div);
   });
 }
 
@@ -150,24 +161,24 @@ selectAllCheckbox.addEventListener("change", () => {
 // Download selected
 downloadBtn.addEventListener("click", () => {
   const checkboxes = linksContainer.querySelectorAll('input[type="checkbox"]');
-  const selectedUrls = [];
+  const selectedItems = [];
 
   checkboxes.forEach(cb => {
     const idx = parseInt(cb.dataset.index, 10);
-    if (cb.checked && currentLinks[idx]) {
-      selectedUrls.push(currentLinks[idx]);
+    if (cb.checked && currentItems[idx]) {
+      selectedItems.push(currentItems[idx]);
     }
   });
 
-  if (!selectedUrls.length) {
+  if (!selectedItems.length) {
     statusDiv.textContent = "Nothing selected.";
     return;
   }
 
-  statusDiv.textContent = `Downloading ${selectedUrls.length} file(s)...`;
+  statusDiv.textContent = `Downloading ${selectedItems.length} file(s)...`;
 
-  selectedUrls.forEach(url => {
-    const directUrl = convertToDirectDownload(url);
+  selectedItems.forEach(item => {
+    const directUrl = convertToDirectDownload(item.url);
 
     chrome.downloads.download({ url: directUrl }, downloadId => {
       if (chrome.runtime.lastError) {
