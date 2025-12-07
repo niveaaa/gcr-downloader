@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Classroom Drive Downloader",
+  "name": "GCR Downloader",
   "version": "1.0",
   "description": "Scan a Google Classroom page for Drive links and download them.",
   "permissions": [
