@@ -16,12 +16,5 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Scan Drive links"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://classroom.google.com/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }
