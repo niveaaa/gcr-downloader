@@ -36,6 +36,21 @@ function convertToDirectDownload(url) {
   return url;
 }
 
+function getFileTypeLabel(title) {
+  const lower = (title || "").toLowerCase();
+
+  if (lower.endsWith(".ppt") || lower.endsWith(".pptx")) return "PPT";
+  if (lower.endsWith(".doc") || lower.endsWith(".docx")) return "DOC";
+  if (lower.endsWith(".pdf")) return "PDF";
+  if (lower.endsWith(".xls") || lower.endsWith(".xlsx")) return "XLS";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "JPG";
+  if (lower.endsWith(".png")) return "PNG";
+
+  return "FILE";
+}
+
+const fileCountSpan = document.getElementById("fileCount");
+
 const scanBtn = document.getElementById("scanBtn");
 const statusDiv = document.getElementById("status");
 const linksContainer = document.getElementById("linksContainer");
@@ -116,11 +131,13 @@ scanBtn.addEventListener("click", async () => {
     currentItems = result.items;
 
     if (!currentItems.length) {
-      statusDiv.textContent = "No Drive links found on this page.";
-      return;
+        statusDiv.textContent = "No Drive files found on this Classroom page.";
+        renderLinks(currentItems);
+        controlsDiv.classList.add("hidden");
+        return;
     }
     
-    statusDiv.textContent = `Found ${currentItems.length} Drive file(s).`;
+    statusDiv.textContent = `Found ${currentItems.length} file(s). You can uncheck any you don't want.`;
     renderLinks(currentItems);
     controlsDiv.classList.remove("hidden");
   } catch (err) {
@@ -134,23 +151,61 @@ scanBtn.addEventListener("click", async () => {
 function renderLinks(items) {
   linksContainer.innerHTML = "";
 
+  if (!items.length) {
+    linksContainer.classList.add("empty-state");
+    linksContainer.innerHTML = `
+      <div class="empty-message">
+        No files found on this page.
+      </div>
+    `;
+    fileCountSpan.textContent = "0";
+    return;
+  }
+
+  linksContainer.classList.remove("empty-state");
+  fileCountSpan.textContent = String(items.length);
+
   items.forEach((item, index) => {
-    const div = document.createElement("div");
-    div.className = "link-item";
+    const { url, title } = item;
+    const typeLabel = getFileTypeLabel(title || url);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "link-item";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.className = "link-checkbox";
     checkbox.checked = true;
     checkbox.dataset.index = index;
 
-    const span = document.createElement("span");
-    span.className = "link-url";
-    span.textContent = item.title;        // show title
-    span.title = item.url;                // show URL on hover
+    const main = document.createElement("div");
+    main.className = "link-main";
 
-    div.appendChild(checkbox);
-    div.appendChild(span);
-    linksContainer.appendChild(div);
+    const titleRow = document.createElement("div");
+    titleRow.className = "link-title-row";
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "file-title";
+    titleSpan.textContent = title || url;
+    titleSpan.title = url; // show URL on hover
+
+    const typePill = document.createElement("span");
+    typePill.className = "file-type-pill";
+    typePill.textContent = typeLabel;
+
+    titleRow.appendChild(titleSpan);
+    titleRow.appendChild(typePill);
+
+    const meta = document.createElement("div");
+    meta.className = "file-meta";
+    meta.textContent = new URL(url).hostname.replace("www.", "");
+
+    main.appendChild(titleRow);
+    main.appendChild(meta);
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(main);
+    linksContainer.appendChild(wrapper);
   });
 }
 

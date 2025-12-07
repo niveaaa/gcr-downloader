@@ -6,21 +6,45 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <h1>Drive Links</h1>
+    <div class="popup-root">
+      <header class="header">
+        <div>
+          <h1>Classroom Downloader</h1>
+          <p class="subtitle">Scan & grab all Drive files from this page.</p>
+        </div>
+      </header>
 
-    <button id="scanBtn">Scan Classroom Page</button>
+      <section class="controls-section">
+        <button id="scanBtn" class="btn btn-primary">
+          🔍 Scan Classroom Page
+        </button>
+        <div id="status" class="status-text">Not scanned yet.</div>
 
-    <div id="status"></div>
+        <div id="controls" class="controls hidden">
+          <label class="select-all">
+            <input type="checkbox" id="selectAll" />
+            <span>Select all</span>
+          </label>
+          <button id="downloadSelected" class="btn btn-secondary">
+            ⬇️ Download selected
+          </button>
+        </div>
+      </section>
 
-    <div id="controls" class="hidden">
-      <label>
-        <input type="checkbox" id="selectAll" />
-        Select all
-      </label>
-      <button id="downloadSelected">Download selected</button>
+      <section class="list-section">
+        <div class="list-header">
+          <span class="list-title">Files</span>
+          <span id="fileCount" class="file-count-badge">0</span>
+        </div>
+
+        <div id="linksContainer" class="links-container empty-state">
+          <div class="empty-message">
+            No files yet.<br />
+            Hit <strong>Scan Classroom Page</strong> to start.
+          </div>
+        </div>
+      </section>
     </div>
-
-    <div id="linksContainer"></div>
 
     <script src="popup.js"></script>
   </body>
