@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Classroom Drive Downloader",
+  "version": "1.0",
+  "description": "Scan a Google Classroom page for Drive links and download them.",
+  "permissions": [
+    "downloads",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://classroom.google.com/*",
+    "https://drive.google.com/*",
+    "https://docs.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Scan Drive links"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://classroom.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
