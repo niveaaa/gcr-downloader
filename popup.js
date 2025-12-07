@@ -1,3 +1,41 @@
+function convertToDirectDownload(url) {
+  // 1. Direct Drive file link: https://drive.google.com/file/d/ID/view
+  let fileIdMatch = url.match(/\/file\/d\/([^/]+)\//);
+  if (fileIdMatch) {
+    const fileId = fileIdMatch[1];
+    return `https://drive.usercontent.google.com/u/1/uc?id=${fileId}&export=download`;
+  }
+
+  // 2. Legacy ?id= format
+  let idParam = url.match(/[?&]id=([^&]+)/);
+  if (idParam) {
+    const fileId = idParam[1];
+    return `https://drive.usercontent.google.com/u/1/uc?id=${fileId}&export=download`;
+  }
+
+  // 3. Docs, Sheets, Slides links (export as PDF)
+  let docMatch = url.match(/\/document\/d\/([^/]+)/);
+  if (docMatch) {
+    const fileId = docMatch[1];
+    return `https://docs.google.com/document/d/${fileId}/export?format=pdf`;
+  }
+
+  let sheetMatch = url.match(/\/spreadsheets\/d\/([^/]+)/);
+  if (sheetMatch) {
+    const fileId = sheetMatch[1];
+    return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
+  }
+
+  let slidesMatch = url.match(/\/presentation\/d\/([^/]+)/);
+  if (slidesMatch) {
+    const fileId = slidesMatch[1];
+    return `https://docs.google.com/presentation/d/${fileId}/export/pdf`;
+  }
+
+  // If unknown type, fallback to original URL
+  return url;
+}
+
 const scanBtn = document.getElementById("scanBtn");
 const statusDiv = document.getElementById("status");
 const linksContainer = document.getElementById("linksContainer");
@@ -122,17 +160,20 @@ downloadBtn.addEventListener("click", () => {
   });
 
   if (!selectedUrls.length) {
-    statusDiv.textContent = "Nothing selected. At least pick one.";
+    statusDiv.textContent = "Nothing selected.";
     return;
   }
 
   statusDiv.textContent = `Downloading ${selectedUrls.length} file(s)...`;
 
   selectedUrls.forEach(url => {
-    chrome.downloads.download({ url }, downloadId => {
+    const directUrl = convertToDirectDownload(url);
+
+    chrome.downloads.download({ url: directUrl }, downloadId => {
       if (chrome.runtime.lastError) {
         console.warn("Download error:", chrome.runtime.lastError.message);
       }
     });
   });
 });
+
