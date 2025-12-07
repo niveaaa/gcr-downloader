@@ -74,22 +74,26 @@ scanBtn.addEventListener("click", async () => {
         const seen = new Set();
     
         anchors.forEach(a => {
-          const href = a.href;
-          if (
+        // Skip useless menu items
+        if (a.getAttribute("role") === "menuitem") return;
+
+        const href = a.href;
+
+        if (
             href.includes("https://drive.google.com") ||
             href.includes("https://docs.google.com")
-          ) {
-            const url = href.split("#")[0]; // strip fragment
+        ) {
+            const url = href.split("#")[0];
+
             if (seen.has(url)) return;
             seen.add(url);
-        
-            // Try to get a nice title
+
             const text = (a.innerText || "").trim();
             const aria = (a.getAttribute("aria-label") || "").trim();
             const title = text || aria || url;
-        
+
             items.push({ url, title });
-          }
+        }
         });
     
         return { error: null, items };
